@@ -2,10 +2,54 @@ use std::ops::{
     Add, AddAssign, Div, DivAssign, Index, IndexMut, Mul, MulAssign, Neg, Sub, SubAssign,
 };
 
+/// The [`Sqrt`] trait, when implemented, enables  [`Vector::mag`]  for [`Vector`] types.
+///
+/// # Notes
+/// This trait is implemented for the following built-ins:
+///   - [`i8`]
+///   - [`i16`]
+///   - [`i32`]
+///   - [`i64`]
+///   - [`i128`]
+///   - [`u8`]
+///   - [`u16`]
+///   - [`u32`]
+///   - [`u64`]
+///   - [`u128`]
+///   - [`f32`]
+///   - [`f64`]
 pub trait Sqrt {
+    /// # Examples
+    /// ```
+    /// use rlalg::Sqrt;
+    ///
+    /// assert_eq!((16 as i32).sqrt(), 4); // Internally uses [`i32::isqrt`]
+    /// assert_eq!((5 as u32).sqrt(), 2); // Internally uses [`u32::isqrt`]
+    /// assert_eq!((1.0 as f32).sqrt(), 1.0); // Internally uses [`f32::sqrt`]
+    /// ```
+    ///
+    /// # Panics
+    /// This may panic if [`Self`] is a signed integer type (such as [`i32`]) and the value
+    /// is negative.
     fn sqrt(&self) -> Self;
 }
 
+/// The [`Numeric`] trait provides an interface for initialization values [`Numeric::ZERO`] and [`Numeric::ONE`]
+///
+/// # Notes
+/// This trait is implemented for the following built-ins:
+///   - [`i8`]
+///   - [`i16`]
+///   - [`i32`]
+///   - [`i64`]
+///   - [`i128`]
+///   - [`u8`]
+///   - [`u16`]
+///   - [`u32`]
+///   - [`u64`]
+///   - [`u128`]
+///   - [`f32`]
+///   - [`f64`]
 pub trait Numeric {
     const ZERO: Self;
     const ONE: Self;
@@ -68,6 +112,7 @@ impl_numeric! {
     f64,
 }
 
+/// A trait which marks a type as eligible to be a vector component.
 pub trait Component:
     Add<Output = Self>
     + AddAssign
@@ -108,6 +153,7 @@ impl_component! {
     f64,
 }
 
+/// A trait for fixed size vector types.
 pub trait Vector<T: Component, const N: usize>:
     Clone
     + Copy
@@ -129,6 +175,7 @@ pub trait Vector<T: Component, const N: usize>:
 {
     const N: usize = N;
 
+    /// Returns the magnitude, squared.
     fn mag_sq(&self) -> T {
         let mut v = T::ZERO;
 
@@ -140,6 +187,24 @@ pub trait Vector<T: Component, const N: usize>:
         v
     }
 
+    /// Returns the magnitude.
+    ///
+    /// # Notes
+    /// This function is susceptible to integer rounding if [`T`] is an
+    /// integral type
+    ///
+    /// # Examples
+    /// ```
+    /// use rlalg::{v, Vector};
+    ///
+    /// let a = v!(3, 4);
+    /// assert_eq!(a.mag(), 5);
+    ///
+    /// let b = v!(2, 3);
+    /// // 2^2 + 3^2 = 13
+    /// // floor(sqrt(13)) = 3
+    /// assert_eq!(b.mag(), 3);
+    /// ```
     fn mag(&self) -> T
     where
         T: Sqrt,
@@ -151,6 +216,13 @@ pub trait Vector<T: Component, const N: usize>:
     ///
     /// # Panics
     /// Panics if one of the components is 0 and `T` panics when division by zero occurs
+    ///
+    /// # Examples
+    /// ```
+    /// use rlalg::{v, Vector};
+    /// let a = v!(3.0, 4.0);
+    /// assert_eq!(a.norm(), v!(0.6, 0.8));
+    /// ```
     fn norm(&self) -> Self
     where
         T: Sqrt,
@@ -368,6 +440,7 @@ macro_rules! impl_vec {
     };
 }
 
+/// Two component vector
 #[allow(non_camel_case_types)]
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct v2<T: Component> {
@@ -383,6 +456,7 @@ impl_vec! {
 
 impl<T: Component> Vector<T, 2> for v2<T> {}
 
+/// Three component vector
 #[allow(non_camel_case_types)]
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct v3<T: Component> {
@@ -400,6 +474,7 @@ impl_vec! {
 
 impl<T: Component> Vector<T, 3> for v3<T> {}
 
+/// Four component vector
 #[allow(non_camel_case_types)]
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct v4<T: Component> {
@@ -419,6 +494,19 @@ impl_vec! {
 
 impl<T: Component> Vector<T, 4> for v4<T> {}
 
+/// Utility macro to help with vector construction
+///
+/// # Examples
+/// ```
+/// use rlalg::{v, v2i, v3u};
+///
+/// let a: v2i = v!(1, 2);
+///
+/// fn f(_v: v3u) {}
+///
+/// // Inferred [`u32`]
+/// f(v!(0, 0, 0))
+/// ```
 #[macro_export]
 macro_rules! v {
     ($x:expr, $y:expr $(,)?) => {
@@ -494,6 +582,18 @@ mod alias {
 
 pub use alias::*;
 
+/// Calculates the dot product between two vectors of same dimension.
+///
+/// # Examples
+/// ```
+/// use rlalg::v;
+///
+/// let a = v!(0, 1);
+/// let b = v!(1, 0);
+///
+/// // Perpendicular vectors produce `0`
+/// assert_eq!(rlalg::dot(a, b), 0);
+/// ```
 pub fn dot<T: Component, const N: usize>(a: impl Vector<T, N>, b: impl Vector<T, N>) -> T {
     let mut s = T::ZERO;
 
@@ -504,6 +604,18 @@ pub fn dot<T: Component, const N: usize>(a: impl Vector<T, N>, b: impl Vector<T,
     s
 }
 
+/// Calculates the cross product between two 3D vectors.
+///
+/// # Examples
+/// ```
+/// use rlalg::v;
+///
+/// let a = v!(1, 0, 0);
+/// let b = v!(0, 1, 0);
+///
+/// // Two axes give the third
+/// assert_eq!(rlalg::cross(a, b), v!(0, 0, 1));
+/// ```
 pub fn cross<T: Component + Neg>(a: impl Vector<T, 3>, b: impl Vector<T, 3>) -> v3<T> {
     v3 {
         x: a[1] * b[2] - a[2] * b[1],
