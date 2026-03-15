@@ -260,7 +260,7 @@ macro_rules! impl_index {
 
 /// impl_vec! {}
 macro_rules! impl_vec {
-    ($T:tt, $([$index:expr, $member:ident]),* $(,)?) => {
+    ($T:tt, $n:literal, $([$index:expr, $member:ident]),* $(,)?) => {
         impl_op! {
             { $T, $($member),* },
             [Add, AddAssign, add, add_assign, +, +=],
@@ -331,6 +331,40 @@ macro_rules! impl_vec {
                 }
             }
         }
+
+        impl<V: Component + bytemuck::Pod> AsRef<[V; $n]> for $T<V>
+        where
+            Self: bytemuck::NoUninit
+        {
+            fn as_ref(&self) -> &[V; $n] {
+                bytemuck::cast_ref(self)
+            }
+        }
+
+        impl<V: Component + bytemuck::Pod> AsMut<[V; $n]> for $T<V>
+        where
+            Self: bytemuck::NoUninit + bytemuck::AnyBitPattern
+        {
+            fn as_mut(&mut self) -> &mut [V; $n] {
+                bytemuck::cast_mut(self)
+            }
+        }
+
+        unsafe impl<V: Component> bytemuck::Zeroable for $T<V>
+        where
+            V: bytemuck::Zeroable + 'static
+        {}
+
+        unsafe impl<V: Component> bytemuck::NoUninit for $T<V>
+        where
+            V: bytemuck::NoUninit + bytemuck::Pod + 'static
+        {}
+
+        unsafe impl<V: Component> bytemuck::AnyBitPattern for $T<V>
+        where
+            Self: bytemuck::Zeroable,
+            V: bytemuck::NoUninit + bytemuck::Zeroable + bytemuck::Pod + bytemuck::AnyBitPattern + 'static
+        {}
     };
 }
 
@@ -342,7 +376,7 @@ pub struct v2<T: Component> {
 }
 
 impl_vec! {
-    v2,
+    v2, 2,
     [0, x],
     [1, y],
 }
@@ -358,7 +392,7 @@ pub struct v3<T: Component> {
 }
 
 impl_vec! {
-    v3,
+    v3, 3,
     [0, x],
     [1, y],
     [2, z],
@@ -376,7 +410,7 @@ pub struct v4<T: Component> {
 }
 
 impl_vec! {
-    v4,
+    v4, 4,
     [0, x],
     [1, y],
     [2, z],
@@ -577,5 +611,18 @@ mod test {
         assert_eq!(z, 3);
 
         assert_eq!(Into::<v3i>::into((1, 2, 3)), v!(1, 2, 3));
+    }
+
+    #[test]
+    fn reinterpret() {
+        let mut v: v4i = v!(0, 1, 2, 3);
+
+        for c in v.as_mut() {
+            *c *= 2;
+        }
+
+        for (i, c) in v.as_ref().iter().enumerate() {
+            assert_eq!(2 * i, *c as usize);
+        }
     }
 }
