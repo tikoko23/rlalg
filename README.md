@@ -3,7 +3,7 @@ A simple, (mostly) minimal linear algebra library for basic vector / matrix math
 
 # Example
 ```rust
-use rlalg::v;
+use rlalg::v3f;
 
 struct Box {
     velocity: v3f,
