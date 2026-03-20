@@ -442,7 +442,7 @@ macro_rules! impl_vec {
 
 /// Two component vector
 #[allow(non_camel_case_types)]
-#[derive(Debug, Clone, Copy, PartialEq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct v2<T: Component> {
     pub x: T,
     pub y: T,
@@ -458,7 +458,7 @@ impl<T: Component> Vector<T, 2> for v2<T> {}
 
 /// Three component vector
 #[allow(non_camel_case_types)]
-#[derive(Debug, Clone, Copy, PartialEq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct v3<T: Component> {
     pub x: T,
     pub y: T,
@@ -476,7 +476,7 @@ impl<T: Component> Vector<T, 3> for v3<T> {}
 
 /// Four component vector
 #[allow(non_camel_case_types)]
-#[derive(Debug, Clone, Copy, PartialEq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct v4<T: Component> {
     pub x: T,
     pub y: T,
