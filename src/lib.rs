@@ -91,7 +91,7 @@ macro_rules! impl_numeric {
         $(
             impl Numeric for $T {
                 const ZERO: Self = 0 as $T;
-                const ONE: Self = 0 as $T;
+                const ONE: Self = 1 as $T;
             }
         )*
     };
